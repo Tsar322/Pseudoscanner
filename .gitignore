@@ -1,0 +1,40 @@
+# Build artifacts
+/scanner_img_proc_lib/out/
+
+# BINs
+/scanner_img_proc_lib/bin
+
+# IDE-specific files
+.vs/
+*.vcxproj
+*.vcxproj.filters
+*.sln
+*.suo
+*.user
+.idea/
+*.iml
+
+# Generic build artifacts
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.exe
+*.app
+
+# Operating system files
+.DS_Store  # macOS
+
+# Temporary files
+*~
+\#*\#
+*.swp
+
+# System-specific settings
+CMakeSettings.json
+
+# Test-related files
+/test_images/
