@@ -2,6 +2,7 @@
 #define SCANNER_IMG_PROC_H
 
 #include <iostream>
+#include <algorithm>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <exception>
@@ -25,6 +26,10 @@ namespace scanner_img_proc {
 
 	template<typename PointType>
 	void _analize_quadrangle(const std::vector<PointType>& points, std::vector<PointType>& best_points, int& best_perimeter);
+
+	//top-left, bottom-left, bottom-right, top-right
+	template<typename PointType>
+	bool distribute_points(std::vector<PointType>& points);
 }
 
 #endif

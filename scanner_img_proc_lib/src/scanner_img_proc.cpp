@@ -136,4 +136,51 @@ namespace scanner_img_proc {
 			best_points = convex;
 		}
 	}
+
+
+	//top-left, bottom-left, bottom-right, top-right
+	template<typename PointType>
+	bool distribute_points(std::vector<PointType>& points) {
+		//std::assert(points.size() == 4);
+		std::vector<PointType> v_based_sorted(4);
+		std::vector<PointType> h_based_result(4);
+		for (std::size_t i = 0; i < 4; ++i) {
+			v_based_sorted[i] = points[i];
+			h_based_result[i] = points[i];
+		}
+
+		//v-based sorting
+		std::sort(v_based_sorted.begin(), v_based_sorted.end(), [](const PointType& a, const PointType& b) {
+			return a.y < b.y; // from top to bottom
+			});
+		std::vector<PointType> v_based_result{ v_based_sorted[0], v_based_sorted[2], v_based_sorted[3], v_based_sorted[1] };
+
+		if (v_based_result[0].x > v_based_result[3].x) {
+			std::swap(v_based_result[0], v_based_result[3]);
+		}
+		if (v_based_result[1].x > v_based_result[2].x) {
+			std::swap(v_based_result[1], v_based_result[2]);
+		}
+
+		//h-based sorting
+		std::sort(h_based_result.begin(), h_based_result.end(), [](const PointType& a, const PointType& b) {
+			return a.x < b.x; // from left to right
+			});
+
+		if (h_based_result[0].y > h_based_result[1].y) {
+			std::swap(h_based_result[0], h_based_result[1]);
+		}
+		if (h_based_result[2].y < h_based_result[3].y) {
+			std::swap(h_based_result[2], h_based_result[3]);
+		}
+
+		// unambiguty check
+		if (h_based_result == v_based_result) {
+			points = h_based_result;
+			return true;
+		}
+
+		return false;
+	}
+	template bool distribute_points<cv::Point>(std::vector<cv::Point>& points);
 }
