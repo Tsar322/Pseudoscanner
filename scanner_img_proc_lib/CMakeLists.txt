@@ -13,6 +13,7 @@ add_library(scanner_img_proc STATIC
 include_directories(
 	src
 	${OpenCV_INCLUDE_DIRS}
+	${Eigen3_INCLUDE_DIR}
 )
 
 add_executable(scanner_img_proc_Test "src/test.cpp" "src/test.h")

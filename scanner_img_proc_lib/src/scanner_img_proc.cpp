@@ -2,6 +2,42 @@
 
 namespace scanner_img_proc {
 
+	enum class Format {
+		A4,
+		Letter,
+		Legal,
+		A3,
+		A5,
+		SixteenByNine, // 16:9
+		FourByThree,  // 4:3
+		Custom
+	};
+
+	double get_aspect_ratio(Format format) {
+		switch (format)
+		{
+		case scanner_img_proc::Format::A4:
+			return 210.0 / 297.0;
+		case scanner_img_proc::Format::Letter:
+			return 8.5 / 11.0;
+		case scanner_img_proc::Format::Legal:
+			return 8.5 / 14.0;
+		case scanner_img_proc::Format::A3:
+			return 297.0 / 420.0;
+		case scanner_img_proc::Format::A5:
+			return 148.0 / 210.0;
+		case scanner_img_proc::Format::SixteenByNine:
+			return 16.0 / 9.0;
+		case scanner_img_proc::Format::FourByThree:
+			return 4.0 / 3.0;
+		case scanner_img_proc::Format::Custom:
+			return std::nan("");
+		default:
+			return std::nan("");
+		}
+	}
+
+
 	std::vector<cv::Point> predetermine_quadrangle(cv::Mat input_img)
 	{
 		cv::Mat img;
@@ -183,4 +219,112 @@ namespace scanner_img_proc {
 		return false;
 	}
 	template bool distribute_points<cv::Point>(std::vector<cv::Point>& points);
+
+	template<typename PointType>
+	bool is_landscape(const std::vector<PointType>& rectangle) {
+		double l = cv::norm(rectangle[1] - rectangle[0]);
+		double r = cv::norm(rectangle[2] - rectangle[3]);
+		double t = cv::norm(rectangle[3] - rectangle[0]);
+		double b = cv::norm(rectangle[2] - rectangle[1]);
+		double v = abs(l * r);
+		double h = abs(t * b);
+		return h > v;
+	}
+	template bool is_landscape<cv::Point>(const std::vector<cv::Point>& rectangle);
+
+	template<typename PointType>
+	double calculate_line_angle_degrees(const PointType& a, const PointType& b) {
+		return std::atan2(b.y - a.y, b.x - a.x) * 180.0 / CV_PI;
+	}
+	template double calculate_line_angle_degrees<cv::Point>(const cv::Point& a, const cv::Point& b);
+
+	template<typename PointType>
+	double get_aspect_ratio(const std::vector<PointType>& quadrangle, const PointType& origin, double angle_tolerance) {
+		const PointType& a = quadrangle[0];
+		const PointType& b = quadrangle[1];
+		const PointType& c = quadrangle[2];
+		const PointType& d = quadrangle[3];
+
+		double angle_ab = calculate_line_angle_degrees(a, b);
+		double angle_bc = calculate_line_angle_degrees(b, c);
+		double angle_dc = calculate_line_angle_degrees(d, c);
+		double angle_ad = calculate_line_angle_degrees(a, d);
+
+		bool ab_dc_parallel = abs(angle_ab - angle_dc) < angle_tolerance;
+		bool bc_ad_parallel = abs(angle_bc - angle_ad) < angle_tolerance;
+
+		if (ab_dc_parallel && bc_ad_parallel) {
+			return get_aspect_ratio_parallel(quadrangle);
+		}
+		if (ab_dc_parallel || bc_ad_parallel) {
+			return std::nan("");
+		}
+		return get_aspect_ratio_no_parallel(quadrangle, origin);
+	}
+	template double get_aspect_ratio< cv::Point>(const std::vector<cv::Point>& quadrangle, const cv::Point& origin, double angle_tolerance);
+
+	template<typename PointType>
+	double get_aspect_ratio_parallel(const std::vector<PointType>& quadrangle) {
+		const PointType& a = quadrangle[0];
+		const PointType& b = quadrangle[1];
+		const PointType& c = quadrangle[2];
+		const PointType& d = quadrangle[3];
+
+		double ab = cv::norm(b - a);
+		double bc = cv::norm(c - b);
+		double cd = cv::norm(d - c);
+		double ad = cv::norm(a - d);
+
+		return (ab + cd) / (bc + ad);
+	}
+	template double get_aspect_ratio_parallel<cv::Point>(const std::vector<cv::Point>& quadrangle);
+
+	template<typename PointType>
+	double get_aspect_ratio_no_parallel(const std::vector<PointType>& quadrangle, PointType origin) {
+
+		PointType a = quadrangle[0] - origin;
+		PointType b = quadrangle[1] - origin;
+		PointType c = quadrangle[2] - origin;
+		PointType d = quadrangle[3] - origin;
+
+		Eigen::Matrix<double, 6, 6> A;
+		Eigen::Matrix<double, 6, 1> B;
+
+		A << 1, 0, -b.x, 0, 0, 0,
+			0, 1, -b.y, 0, 0, 0,
+			0, 0, 0, 1, 0, -d.x,
+			0, 0, 0, 0, 1, -d.y,
+			1, 0, -c.x, 1, 0, -c.x,
+			0, 1, -c.y, 0, 1, -c.y;
+
+		B << b.x - a.x,
+			b.y - a.y,
+			d.x - a.x,
+			d.y - a.y,
+			c.x - a.x,
+			c.y - a.y;
+
+
+		B = A.partialPivLu().solve(B);
+
+		double& ux = B(0, 0);
+		double& uy = B(1, 0);
+		double& uz_div_lambda = B(2, 0);
+		double& vx = B(3, 0);
+		double& vy = B(4, 0);
+		double& vz_div_lambda = B(5, 0);
+
+		double lambda = std::sqrt((-ux * vx - uy * vy) / (uz_div_lambda * vz_div_lambda));
+
+		double uz = uz_div_lambda * lambda;
+		double vz = vz_div_lambda * lambda;
+
+		double u_module = std::sqrt(ux * ux + uy * uy + uz * uz);
+		double v_module = std::sqrt(vx * vx + vy * vy + vz * vz);
+
+		double aspect_ratio = u_module / v_module;
+
+		return aspect_ratio;
+	}
+	template double get_aspect_ratio_no_parallel<cv::Point>(const std::vector<cv::Point>& quadrangle, cv::Point origin);
 }

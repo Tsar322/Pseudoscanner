@@ -6,8 +6,15 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <exception>
+#include <cmath>
+
+#include <Eigen/Dense>
 
 namespace scanner_img_proc {
+
+	enum class Format;
+
+	double get_aspect_ratio(Format format);
 	
 	std::vector<cv::Point> predetermine_quadrangle(cv::Mat input_img);
 
@@ -27,9 +34,28 @@ namespace scanner_img_proc {
 	template<typename PointType>
 	void _analize_quadrangle(const std::vector<PointType>& points, std::vector<PointType>& best_points, int& best_perimeter);
 
+
+
 	//top-left, bottom-left, bottom-right, top-right
 	template<typename PointType>
 	bool distribute_points(std::vector<PointType>& points);
+
+	template<typename PointType>
+	bool is_landscape(const std::vector<PointType>& rectangle);
+
+	//will return NaN if the quadrangle is a trapezoid, but not a parallelogram
+	template<typename PointType>
+	double get_aspect_ratio(const std::vector<PointType>& quadrangle, const PointType& origin, double angle_tolerance = 3.0);
+
+	//will return NaN if the quadrangle is a trapezoid or the original shape is not a rectangle
+	template<typename PointType>
+	double get_aspect_ratio_no_parallel(const std::vector<PointType>& quadrangle, PointType origin);
+
+	template<typename PointType>
+	double get_aspect_ratio_parallel(const std::vector<PointType>& quadrangle);
+
+	template<typename PointType>
+	double calculate_line_angle_degrees(const PointType& a, const PointType& b);
 }
 
 #endif
