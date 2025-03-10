@@ -12,24 +12,24 @@ namespace scanner_img_proc {
 		FourByThree,  // 4:3
 		Custom
 	};
+	const Format allFormats[] = { Format::A4, Format::Letter, Format::Legal, Format::A3, Format::A5, Format::SixteenByNine, Format::FourByThree, Format::Custom };
 
-	double get_aspect_ratio(Format format) {
-		switch (format)
-		{
+	double get_aspect_ratio(Format format, bool is_portrait) {
+		switch (format) {
 		case scanner_img_proc::Format::A4:
-			return 210.0 / 297.0;
+			return is_portrait ? (210.0 / 297.0) : (297.0 / 210.0);
 		case scanner_img_proc::Format::Letter:
-			return 8.5 / 11.0;
+			return is_portrait ? (8.5 / 11.0) : (11.0 / 8.5);
 		case scanner_img_proc::Format::Legal:
-			return 8.5 / 14.0;
+			return is_portrait ? (8.5 / 14.0) : (14.0 / 8.5);
 		case scanner_img_proc::Format::A3:
-			return 297.0 / 420.0;
+			return is_portrait ? (297.0 / 420.0) : (420.0 / 297.0);
 		case scanner_img_proc::Format::A5:
-			return 148.0 / 210.0;
+			return is_portrait ? (148.0 / 210.0) : (210.0 / 148.0);
 		case scanner_img_proc::Format::SixteenByNine:
-			return 16.0 / 9.0;
+			return is_portrait ? (9.0 / 16.0) : (16.0 / 9.0);  // Adjusted for portrait
 		case scanner_img_proc::Format::FourByThree:
-			return 4.0 / 3.0;
+			return is_portrait ? (3.0 / 4.0) : (4.0 / 3.0);  // Adjusted for portrait
 		case scanner_img_proc::Format::Custom:
 			return std::nan("");
 		default:
@@ -37,6 +37,16 @@ namespace scanner_img_proc {
 		}
 	}
 
+	double round_aspect_ratio_to_format(double aspect_ratio, double tolerance, bool abs) {
+		if (!abs) {
+			tolerance = aspect_ratio * tolerance;
+		}
+		for (Format format: allFormats) {
+			if (std::fabs(get_aspect_ratio(format, true) - aspect_ratio) <= tolerance) return get_aspect_ratio(format, true);
+			if (std::fabs(get_aspect_ratio(format, false) - aspect_ratio) <= tolerance) return get_aspect_ratio(format, false);
+		}
+		return aspect_ratio;
+	}
 
 	std::vector<cv::Point> predetermine_quadrangle(cv::Mat input_img)
 	{
@@ -261,7 +271,7 @@ namespace scanner_img_proc {
 		}
 		return get_aspect_ratio_no_parallel(quadrangle, origin);
 	}
-	template double get_aspect_ratio< cv::Point>(const std::vector<cv::Point>& quadrangle, const cv::Point& origin, double angle_tolerance);
+	template double get_aspect_ratio<cv::Point>(const std::vector<cv::Point>& quadrangle, const cv::Point& origin, double angle_tolerance);
 
 	template<typename PointType>
 	double get_aspect_ratio_parallel(const std::vector<PointType>& quadrangle) {
@@ -275,7 +285,7 @@ namespace scanner_img_proc {
 		double cd = cv::norm(d - c);
 		double ad = cv::norm(a - d);
 
-		return (ab + cd) / (bc + ad);
+		return (bc + ad) / (ab + cd);
 	}
 	template double get_aspect_ratio_parallel<cv::Point>(const std::vector<cv::Point>& quadrangle);
 
@@ -322,9 +332,39 @@ namespace scanner_img_proc {
 		double u_module = std::sqrt(ux * ux + uy * uy + uz * uz);
 		double v_module = std::sqrt(vx * vx + vy * vy + vz * vz);
 
-		double aspect_ratio = u_module / v_module;
+		double aspect_ratio = v_module / u_module;
 
 		return aspect_ratio;
 	}
 	template double get_aspect_ratio_no_parallel<cv::Point>(const std::vector<cv::Point>& quadrangle, cv::Point origin);
+
+
+	template<typename PointType>
+	void transform_perspective(cv::InputArray src, cv::OutputArray dst, const std::vector<PointType>& quadrangle, double aspect_ratio, int large_side) {
+		cv::Mat input = src.getMat();
+		if (!large_side) {
+			large_side = std::max(input.cols, input.rows);
+		}
+
+		cv::Size dsize;
+		if (aspect_ratio < 1) {
+			double small_side = large_side * aspect_ratio;
+			dsize = cv::Size(small_side, large_side);
+		}
+		else {
+			double small_side = large_side / aspect_ratio;
+			dsize = cv::Size(large_side, small_side);
+		}
+
+		transform_perspective(src, dst, quadrangle, dsize);
+	}
+	template void transform_perspective< cv::Point>(cv::InputArray src, cv::OutputArray dst, const std::vector<cv::Point>& quadrangle, double aspect_ratio, int large_side);
+
+	template<typename PointType>
+	void transform_perspective(cv::InputArray src, cv::OutputArray dst, const std::vector<PointType>& quadrangle, cv::Size dsize) {
+		std::vector<PointType> corners{ PointType(0, 0), PointType(0, dsize.height - 1), PointType(dsize.width - 1, dsize.height - 1), PointType(dsize.width - 1, 0) };
+		cv::Mat m = cv::findHomography(quadrangle, corners);
+		cv::warpPerspective(src, dst, m, dsize);
+	}
+	template void transform_perspective<cv::Point>(cv::InputArray src, cv::OutputArray dst, const std::vector<cv::Point>& quadrangle, cv::Size dsize);
 }

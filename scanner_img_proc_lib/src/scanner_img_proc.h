@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
 #include <exception>
 #include <cmath>
 
@@ -14,7 +15,9 @@ namespace scanner_img_proc {
 
 	enum class Format;
 
-	double get_aspect_ratio(Format format);
+	double get_aspect_ratio(Format format, bool is_portrait = true);
+
+	double round_aspect_ratio_to_format(double aspect_ratio, double tolerance, bool abs = true);
 	
 	std::vector<cv::Point> predetermine_quadrangle(cv::Mat input_img);
 
@@ -56,6 +59,11 @@ namespace scanner_img_proc {
 
 	template<typename PointType>
 	double calculate_line_angle_degrees(const PointType& a, const PointType& b);
+
+	template<typename PointType>
+	void transform_perspective(cv::InputArray src, cv::OutputArray dst, const std::vector<PointType>& quadrangle, double aspect_ratio = 0.71, int large_side = 0);
+	template<typename PointType>
+	void transform_perspective(cv::InputArray src, cv::OutputArray dst, const std::vector<PointType>& quadrangle, cv::Size dsize);
 }
 
 #endif
