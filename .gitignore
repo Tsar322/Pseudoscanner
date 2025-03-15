@@ -1,8 +1,10 @@
 # Build artifacts
-/scanner_img_proc_lib/out/
+/scanner_img_proc_lib/out
+/Pseudoscanner_desktop/out
 
 # BINs
 /scanner_img_proc_lib/bin
+/Pseudoscanner_desktop/bin
 
 # IDE-specific files
 .vs/
@@ -35,6 +37,10 @@
 
 # System-specific settings
 CMakeSettings.json
+CMakeLists.txt.qtds
+CMakePresets.json
+CMakeUserPresets.json
+CMakeLists.txt.user
 
 # Test-related files
 /test_images/
