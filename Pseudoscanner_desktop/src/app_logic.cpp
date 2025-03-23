@@ -9,10 +9,6 @@ QHash<int, QByteArray> AppLogic::roleNames() const {
     };
 }
 
-ImageData::ImageData(QImage originalImage_, QImage processedImage_, QString path_, cv::Mat img_)
-    :originalImage(originalImage_), processedImage(processedImage_), path(path_), img(img_) {
-
-}
 
 AppLogic::AppLogic(QObject* parent)
 	: QAbstractListModel(parent) {
@@ -20,19 +16,18 @@ AppLogic::AppLogic(QObject* parent)
 }
 
 void AppLogic::openImages(const QList<QString>& paths) {
-    qDebug() << "in openImages";
-    beginResetModel();
 	for (const auto& path : paths) {
-        qDebug() << "In openImages: path = " << path;
         cv::Mat mat = cv::imread(path.toStdString().substr(8), cv::IMREAD_COLOR); // prefix "file:///" removed
-        QImage originalImage = cvMatToQImage(mat);
-        QImage processedImage = originalImage.convertToFormat(QImage::Format_Grayscale8);
-        
-        imageData.emplaceBack(originalImage, processedImage, path, mat);
+        if (!mat.empty()) {
+            beginInsertRows(QModelIndex(), imageData.size(), imageData.size());
+            QImage originalImage = cvMatToQImage(mat);
+            QImage processedImage = originalImage.convertToFormat(QImage::Format_Grayscale8);
+
+            imageData.emplaceBack(originalImage, processedImage, path, mat);
+            endInsertRows();
+            setCursor(imageData.size() - 1);
+        }
 	}
-    m_cursor = imageData.size() - 1;
-    endResetModel();
-    emit cursorDataChanged();
 }
 
 QImage AppLogic::originalImage(int i) const {
@@ -68,9 +63,63 @@ int AppLogic::imageDataSize() const {
 }
 
 void AppLogic::setCursor(int cursor) {
-    if (m_cursor != cursor) {
+    if (m_cursor != cursor && cursor >= 0 && cursor < imageData.size()) {
         m_cursor = cursor;
         emit cursorDataChanged();
+    }
+}
+
+int AppLogic::getCorner(int cursor, int corner_index, bool is_x) const {
+    if (cursor >= imageData.size() || cursor < 0) {
+        qDebug() << "Invalid image index";
+        return 0;
+    }
+    if (corner_index < 0 || corner_index > 3) {
+        qDebug() << "invalid corner index";
+        return 0;
+    }
+    const cv::Point& corner = imageData[cursor].documentCorners[corner_index];
+    if (is_x) return corner.x;
+    else return corner.y;
+}
+
+void AppLogic::setCorner(int cursor, int corner_index, int x, int y) {
+    if (cursor >= imageData.size() || cursor < 0) {
+        qDebug() << "Invalid image index";
+    }
+    if (corner_index < 0 || corner_index > 3) {
+        qDebug() << "invalid corner index";
+    }
+    cv::Point& corner = imageData[cursor].documentCorners[corner_index];
+    if (x < 0) corner.x = 0;
+    else if (x >= imageData[cursor].img.cols) corner.x = imageData[cursor].img.cols - 1;
+    else corner.x = x;
+
+    if (y < 0) corner.y = 0;
+    else if (y >= imageData[cursor].img.rows) corner.y = imageData[cursor].img.rows - 1;
+    else corner.y = y;
+}
+
+void AppLogic::predetectCorners(int index) {
+    imageData[index].documentCorners = scanner_img_proc::predetermine_quadrangle(imageData[index].img);
+}
+
+void AppLogic::applyTransform(int index) {
+    const cv::Mat& img = imageData[index].img;
+    std::vector<cv::Point>& document_corners = imageData[index].documentCorners;
+    cv::Mat dst;
+    cv::Size img_size = img.size();
+    std::vector<cv::Point> img_corners{ cv::Point(img_size.width - 1, 0), cv::Point(img_size.width - 1, img_size.height - 1), cv::Point(0, img_size.height - 1), cv::Point(0, 0) };
+
+    if (scanner_img_proc::distribute_points(document_corners)) {
+        cv::Point origin(img.cols / 2, img.rows / 2);
+        double aspect_ratio = scanner_img_proc::get_aspect_ratio(document_corners, origin);
+        scanner_img_proc::transform_perspective(img, dst, document_corners, aspect_ratio);
+        imageData[index].processedImage = cvMatToQImage(dst);
+        emit processedImageChanged();
+    }
+    else {
+        qDebug() << "Invalid document corners";
     }
 }
 

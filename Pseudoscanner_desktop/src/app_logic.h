@@ -8,18 +8,15 @@
 #include <QDebug>
 #include <QAbstractListModel>
 
+#include <QPixmap>
+
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
-class ImageData {
-public:
-	explicit ImageData(QImage originalImage, QImage processedImage, QString path, cv::Mat img);
-	QImage originalImage;
-	QImage processedImage;
-	QString path;
-	cv::Mat img;
-};
+#include <scanner_img_proc.h>
+
+#include "image_data.h"
 
 class AppLogic : public QAbstractListModel {
 	Q_OBJECT
@@ -43,7 +40,11 @@ public:
 
 	int cursor() const;
 	int imageDataSize() const;
-	void setCursor(int cursor);
+	Q_INVOKABLE void setCursor(int cursor);
+	Q_INVOKABLE int getCorner(int cursor, int corner_index, bool is_x) const;
+	Q_INVOKABLE void setCorner(int cursor, int corner_index, int x, int y);
+	Q_INVOKABLE void predetectCorners(int cursor);
+	Q_INVOKABLE void applyTransform(int cursor);
 
 	// QAbstractListModel overrides
 	int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -52,19 +53,11 @@ public:
 
 private:
 	QList<ImageData> imageData;
-	int m_cursor{};
+	int m_cursor{-1};
 signals:
 	void cursorDataChanged();
+	void processedImageChanged();
 };
-
-//class Worker : public QObject {
-//	Q_OBJECT
-//public:
-//	explicit Worker(QObject* parent = nullptr);
-//public slots:
-//private:
-//	QStringList file_paths;
-//};
 
 
 QImage cvMatToQImage(const cv::Mat& mat);

@@ -22,6 +22,8 @@ qt_add_executable(${APPLICATION_NAME}
     ${RESOURCES}
     src/image_provider.cpp
     src/app_logic.cpp
+    src/image_data.cpp
+    ../scanner_img_proc_lib/src/scanner_img_proc.cpp
 )
 
 include_directories(
@@ -31,6 +33,8 @@ include_directories(
     ${Qt6Qml_INCUDE_DIRS}
     ${Qt6Core_INCUDE_DIRS}
     ${Qt6Gui_INCUDE_DIRS}
+	${Eigen3_INCLUDE_DIR}
+    ../scanner_img_proc_lib/src
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

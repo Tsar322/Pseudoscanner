@@ -1,5 +1,7 @@
 ﻿<RCC>
     <qresource prefix="/">
       <file>Main.qml</file>
+      <file>DraggablePoint.qml</file>
+      <file>Crosshair.qml</file>
     </qresource>
 </RCC>
