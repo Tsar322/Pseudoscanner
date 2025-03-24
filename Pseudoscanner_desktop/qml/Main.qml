@@ -112,22 +112,12 @@ Window {
                             scaleFacor = Math.min(paintedWidth / implicitWidth, paintedHeight / implicitHeight)
 
                             if (status === Image.Ready){
-                                 for(var i = 0; i < pointsRepeater.count; i++){
-                                     var point = pointsRepeater.itemAt(i)
-                                     if(point){
-                                         point.initPosition()
-                                     }
-                                 }
+                                pointsRepeater.rewritePoints()
                             }
                         }
 
                         onStatusChanged: if (status === Image.Ready){
-                             for(var i = 0; i < pointsRepeater.count; i++){
-                                 var point = pointsRepeater.itemAt(i)
-                                 if(point){
-                                     point.initPosition()
-                                 }
-                             }
+                            pointsRepeater.rewritePoints()
                         }
                         onXChanged: onGeometryChanged()
                         onYChanged: onGeometryChanged()
@@ -189,6 +179,15 @@ Window {
                                     app.setCorner(app.cursor, index, originalX, originalY)
                                 }
                             }
+
+                            function rewritePoints() {
+                                for(var i = 0; i < pointsRepeater.count; i++){
+                                    var point = pointsRepeater.itemAt(i)
+                                    if(point){
+                                        point.initPosition()
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -223,12 +222,7 @@ Window {
 
                     onClicked: {
                         app.predetectCorners(app.cursor)
-                        for(var i = 0; i < pointsRepeater.count; i++){
-                            var point = pointsRepeater.itemAt(i)
-                            if(point){
-                                point.initPosition()
-                            }
-                        }
+                        pointsRepeater.rewritePoints()
                     }
                 }
                 Button{
@@ -238,6 +232,15 @@ Window {
 
                     onClicked: {
                         app.applyTransform(app.cursor)
+                    }
+                }
+                Button{
+                    id: saveImageButton
+                    Layout.fillWidth: true
+                    text: "saveImage"
+
+                    onClicked: {
+                        saveImageDialog.open()
                     }
                 }
             }
@@ -258,6 +261,16 @@ Window {
         }
     }
 
+    FileDialog{
+        id: saveImageDialog
+        fileMode: FileDialog.SaveFile
+        nameFilters: ["PNG Image (*.png)", "JPEG Image (*.jpg *.jpeg)", "All files (*)"]
+        defaultSuffix: "png"
+        onAccepted: {
+            app.saveImage(app.index, selectedFile)
+        }
+    }
+
     Connections {
         target: app
         onCursorDataChanged: {
@@ -269,6 +282,11 @@ Window {
             console.log("in onProcessedImageChanged");
             processedImage.source = "image://garbage"
             processedImage.source = "image://images/" + app.cursor + "/processed"
+        }
+        onCornersPredetected:{
+            if(app.cursor === index){
+                pointsRepeater.rewritePoints()
+            }
         }
     }
 

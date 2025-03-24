@@ -101,7 +101,14 @@ void AppLogic::setCorner(int cursor, int corner_index, int x, int y) {
 }
 
 void AppLogic::predetectCorners(int index) {
-    imageData[index].documentCorners = scanner_img_proc::predetermine_quadrangle(imageData[index].img);
+    QtConcurrent::run([this, index]() {
+        std::vector<cv::Point> corners = scanner_img_proc::predetermine_quadrangle(imageData[index].img);
+        QMetaObject::invokeMethod(this, [this, index, corners]() {
+            imageData[index].documentCorners = std::move(corners);
+            emit cornersPredetected(index);
+            });
+        });
+    //imageData[index].documentCorners = scanner_img_proc::predetermine_quadrangle(imageData[index].img);
 }
 
 void AppLogic::applyTransform(int index) {
@@ -114,6 +121,9 @@ void AppLogic::applyTransform(int index) {
     if (scanner_img_proc::distribute_points(document_corners)) {
         cv::Point origin(img.cols / 2, img.rows / 2);
         double aspect_ratio = scanner_img_proc::get_aspect_ratio(document_corners, origin);
+        if (std::isnan(aspect_ratio)) {
+            aspect_ratio = 1 / 1.414;
+        }
         scanner_img_proc::transform_perspective(img, dst, document_corners, aspect_ratio);
         imageData[index].processedImage = cvMatToQImage(dst);
         emit processedImageChanged();
@@ -121,6 +131,15 @@ void AppLogic::applyTransform(int index) {
     else {
         qDebug() << "Invalid document corners";
     }
+}
+
+bool AppLogic::saveImage(int index, const QUrl& targetUrl) const {
+    QString localPath = targetUrl.toLocalFile();
+    QFileInfo fileInfo(localPath);
+    QDir dir;
+    if (dir.exists(fileInfo.path()))
+        dir.mkpath(fileInfo.path());
+    return imageData[index].processedImage.save(localPath);
 }
 
 // QAbstractListModel overrides

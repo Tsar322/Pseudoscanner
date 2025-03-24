@@ -48,7 +48,7 @@ namespace scanner_img_proc {
 		return aspect_ratio;
 	}
 
-	std::vector<cv::Point> predetermine_quadrangle(cv::Mat input_img)
+	std::vector<cv::Point> predetermine_quadrangle(const cv::Mat& input_img)
 	{
 		cv::Mat img;
 		cv::GaussianBlur(input_img, img, cv::Size(5, 5), 0);

@@ -7,6 +7,10 @@
 #include <QColorTransform>
 #include <QDebug>
 #include <QAbstractListModel>
+#include <QUrl>
+#include <QDir>
+#include <QtConcurrent/QtConcurrentRun>
+#include <QMetaObject>
 
 #include <QPixmap>
 
@@ -40,11 +44,12 @@ public:
 
 	int cursor() const;
 	int imageDataSize() const;
-	Q_INVOKABLE void setCursor(int cursor);
-	Q_INVOKABLE int getCorner(int cursor, int corner_index, bool is_x) const;
-	Q_INVOKABLE void setCorner(int cursor, int corner_index, int x, int y);
-	Q_INVOKABLE void predetectCorners(int cursor);
-	Q_INVOKABLE void applyTransform(int cursor);
+	Q_INVOKABLE void setCursor(int index);
+	Q_INVOKABLE int getCorner(int index, int corner_index, bool is_x) const;
+	Q_INVOKABLE void setCorner(int index, int corner_index, int x, int y);
+	Q_INVOKABLE void predetectCorners(int index);
+	Q_INVOKABLE void applyTransform(int index);
+	Q_INVOKABLE bool saveImage(int index, const QUrl& targetUrl) const;
 
 	// QAbstractListModel overrides
 	int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -57,6 +62,7 @@ private:
 signals:
 	void cursorDataChanged();
 	void processedImageChanged();
+	void cornersPredetected(int index);
 };
 
 

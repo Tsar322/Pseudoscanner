@@ -19,7 +19,7 @@ namespace scanner_img_proc {
 
 	double round_aspect_ratio_to_format(double aspect_ratio, double tolerance, bool abs = true);
 	
-	std::vector<cv::Point> predetermine_quadrangle(cv::Mat input_img);
+	std::vector<cv::Point> predetermine_quadrangle(const cv::Mat& input_img);
 
 	std::vector<cv::Point2f> find_line_intersections_rho_theta(const std::vector<cv::Vec2f>& lines, cv::Size imageSize);
 
