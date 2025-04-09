@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Controls 2.15
+import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
 
@@ -104,7 +104,6 @@ Window {
                         property real imageHeight: paintedHeight
 
                         function onGeometryChanged(){
-                            console.log("in onGeometryChanged")
                             imageX = (parent.width - paintedWidth) / 2
                             imageY = (parent.height - paintedHeight) / 2
                             imageWidth = paintedWidth
@@ -151,14 +150,12 @@ Window {
                                 }
 
                                 function initPosition() {
-                                    //originalImage.onGeometryChanged()
 
                                     minX = originalImage.imageX
                                     maxX = originalImage.imageX + originalImage.imageWidth
                                     minY = originalImage.imageY
                                     maxY = originalImage.imageY + originalImage.imageHeight
 
-                                    console.log("in initPosition()");
                                     var originalX = app.getCorner(app.cursor, index, true);
                                     var originalY = app.getCorner(app.cursor, index, false);
                                     var paintedX = originalX * originalImage.scaleFacor;
@@ -169,7 +166,6 @@ Window {
                                 }
 
                                 onDragged:{
-                                    console.log("Dragged");
                                     var paintedX = x - minX
                                     var paintedY = y - minY
 
@@ -256,9 +252,6 @@ Window {
         onAccepted: {
             app.openImages(selectedFiles)
         }
-        onRejected: {
-            console.log("File selection canceled")
-        }
     }
 
     FileDialog{
@@ -279,7 +272,6 @@ Window {
             processedImage.source = "image://images/" + app.cursor + "/processed"
         }
         onProcessedImageChanged: {
-            console.log("in onProcessedImageChanged");
             processedImage.source = "image://garbage"
             processedImage.source = "image://images/" + app.cursor + "/processed"
         }

@@ -1,6 +1,8 @@
 # Build artifacts
 /scanner_img_proc_lib/out
+/scanner_img_proc_lib/build
 /Pseudoscanner_desktop/out
+/Pseudoscanner_desktop/build
 
 # BINs
 /scanner_img_proc_lib/bin

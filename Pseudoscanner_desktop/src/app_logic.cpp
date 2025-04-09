@@ -16,8 +16,21 @@ AppLogic::AppLogic(QObject* parent)
 }
 
 void AppLogic::openImages(const QList<QString>& paths) {
-	for (const auto& path : paths) {
-        cv::Mat mat = cv::imread(path.toStdString().substr(8), cv::IMREAD_COLOR); // prefix "file:///" removed
+	for (const auto& urlpath : paths) {
+        QString path = QUrl(urlpath).toLocalFile();
+        QFile file(path);
+
+        if (!file.open(QIODevice::ReadOnly)) {
+            qDebug() << "Error opening file";
+            continue;
+        }
+
+        QByteArray buff = file.readAll();
+        cv::Mat mat = cv::imdecode(
+            cv::Mat(1, buff.size(), CV_8UC1, buff.data()),
+            cv::IMREAD_COLOR
+        );
+        //cv::Mat mat = cv::imread(path.toStdString().substr(8), cv::IMREAD_COLOR); // prefix "file:///" removed
         if (!mat.empty()) {
             beginInsertRows(QModelIndex(), imageData.size(), imageData.size());
             QImage originalImage = cvMatToQImage(mat);
